@@ -43,11 +43,10 @@
 
       <!-- Content -->
       <div class="p-8 flex flex-col items-center text-center space-y-6">
-        <!-- Logo/Icon Placeholder -->
-        <div
-          class="w-20 h-20 bg-gradient-to-br from-[#818cf8] to-[#6366f1] rounded-2xl flex items-center justify-center shadow-lg shadow-[#818cf8]/20 mb-2"
-        >
-          <img src="/icon.png" alt="App Icon" class="w-20 h-20" />
+        
+        <!-- Logo/Icon -->
+        <div class="w-24 h-24 flex items-center justify-center mb-2 drop-shadow-2xl filter">
+            <img src="icon.png" alt="Nocturnote" class="w-full h-full object-contain" />
         </div>
 
         <div class="space-y-2">
