@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+
+/* Reset Everything to Full Screen */
+:root,
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevents the "Page Down" black block issue */
+  background-color: #1e1e2e; /* Match your app theme */
+}
+
+#app {
+  height: 100%;
+  width: 100%;
+}
