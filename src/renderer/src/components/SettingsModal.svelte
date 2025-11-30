@@ -3,6 +3,8 @@
   import { fade, scale } from 'svelte/transition';
   import type { AppSettings } from '../types';
   import Dropdown from './Dropdown.svelte';
+  import Toggle from './Toggle.svelte';
+  import Range from './Range.svelte';
 
   let { showSettings = $bindable(), settings = $bindable() } = $props<{
     showSettings: boolean;
@@ -51,13 +53,23 @@
 
         <Dropdown label="Weight" options={weightOptions} bind:value={settings.fontWeight} />
 
-        <div class="space-y-6 pt-2">
-            <div class="space-y-3"><div class="flex justify-between text-xs text-[#a1a1aa]"><span>Font Size</span><span class="font-mono text-[#818cf8]">{settings.fontSize}px</span></div><input type="range" min="12" max="32" step="1" bind:value={settings.fontSize} class="w-full h-1.5 bg-[#2e3245] rounded-full appearance-none cursor-pointer accent-[#818cf8]"></div>
-            <div class="space-y-3"><div class="flex justify-between text-xs text-[#a1a1aa]"><span>Line Height</span><span class="font-mono text-[#818cf8]">{settings.lineHeight}</span></div><input type="range" min="1.0" max="2.5" step="0.1" bind:value={settings.lineHeight} class="w-full h-1.5 bg-[#2e3245] rounded-full appearance-none cursor-pointer accent-[#818cf8]"></div>
+        <div class="space-y-5 pt-2">
+            <Range 
+              label="Font Size" 
+              min={12} max={32} step={1} 
+              bind:value={settings.fontSize} 
+              displayFormat={(v) => `${v}px`} 
+            />
+            <Range 
+              label="Line Height" 
+              min={1.0} max={2.5} step={0.1} 
+              bind:value={settings.lineHeight} 
+            />
         </div>
-        <div class="pt-6 border-t border-[#2e3245] space-y-4">
-            <label class="flex items-center justify-between cursor-pointer group"><span class="text-sm text-[#d4d4d8] group-hover:text-white transition-colors">Word Wrap</span><div class="relative"><input type="checkbox" bind:checked={settings.wordWrap} class="sr-only peer"><div class="w-10 h-5 bg-[#2e3245] rounded-full peer peer-checked:bg-[#818cf8] transition-colors"></div><div class="absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-full shadow-sm"></div></div></label>
-            <label class="flex items-center justify-between cursor-pointer group"><span class="text-sm text-[#d4d4d8] group-hover:text-white transition-colors">Line Numbers</span><div class="relative"><input type="checkbox" bind:checked={settings.showLineNumbers} class="sr-only peer"><div class="w-10 h-5 bg-[#2e3245] rounded-full peer peer-checked:bg-[#818cf8] transition-colors"></div><div class="absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-full shadow-sm"></div></div></label>
+
+        <div class="pt-6 border-t border-[#2e3245] space-y-3">
+            <Toggle label="Word Wrap" bind:checked={settings.wordWrap} />
+            <Toggle label="Line Numbers" bind:checked={settings.showLineNumbers} />
         </div>
       </div>
     </div>
