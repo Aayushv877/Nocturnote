@@ -19,6 +19,7 @@ declare global {
       close: () => void
       platform: NodeJS.Platform
       getInitialFile: () => Promise<{ content: string; filePath: string } | null>
+      getAppVersion: () => Promise<string>
       onFileOpened: (callback: (content: string, filePath: string) => void) => void
     }
   }

@@ -148,6 +148,8 @@ if (!gotTheLock) {
         return file;
     })
 
+    ipcMain.handle('get-app-version', () => app.getVersion())
+
     createWindow()
 
     app.on('activate', function () {

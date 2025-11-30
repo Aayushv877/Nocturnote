@@ -11,6 +11,7 @@ const api = {
 
   // Startup & External Open
   getInitialFile: () => ipcRenderer.invoke('get-initial-file'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   onFileOpened: (callback: (content: string, filePath: string) => void) =>
     ipcRenderer.on('open-file-content', (_, value) => callback(value.content, value.filePath)),
 

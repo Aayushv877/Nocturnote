@@ -1,0 +1,66 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { fade, scale } from 'svelte/transition';
+  import type { AppSettings } from '../types';
+
+  let { showSettings = $bindable(), settings = $bindable() } = $props<{
+    showSettings: boolean;
+    settings: AppSettings;
+  }>();
+
+  let appVersion = $state('');
+
+  onMount(async () => {
+    appVersion = await window.api.getAppVersion();
+  });
+
+  const fontOptions = [
+    { name: 'Modern Mono', value: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace", label: 'System UI' },
+    { name: 'Classic Console', value: "Consolas, 'Liberation Mono', Menlo, Courier, monospace", label: 'Retro' },
+    { name: 'Clean Sans', value: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", label: 'Modern UI' },
+    { name: 'Elegant Serif', value: "Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif", label: 'Reading' }
+  ];
+
+  const weightOptions = [
+    { label: 'Light', value: 300 },
+    { label: 'Normal', value: 400 },
+    { label: 'Medium', value: 500 }
+  ];
+</script>
+
+{#if showSettings}
+  <div transition:fade={{ duration: 150 }} class="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm no-drag" onclick={() => showSettings = false}>
+    <div transition:scale={{ duration: 200, start: 0.95 }} class="w-[440px] bg-[#18181b] border border-[#2e3245] rounded-xl shadow-2xl overflow-hidden" onclick={(e) => e.stopPropagation()}>
+      <div class="px-6 py-4 border-b border-[#2e3245] flex justify-between items-center bg-[#0e1019]">
+        <h2 class="text-sm font-semibold tracking-wide text-[#f4f4f5]">Appearance <span class="ml-2 text-[10px] font-normal text-[#71717a] opacity-60">v{appVersion}</span></h2>
+        <button onclick={() => showSettings = false} class="text-[#71717a] hover:text-[#f4f4f5] transition-colors text-xs uppercase tracking-wider font-bold">Close</button>
+      </div>
+      <div class="p-6 space-y-8">
+        <div class="space-y-3">
+           <label class="text-[11px] font-bold text-[#71717a] uppercase tracking-widest">Typography</label>
+           <div class="grid grid-cols-2 gap-2">
+             {#each fontOptions as font}
+               <button onclick={() => settings.fontFamily = font.value} class="h-14 rounded-lg border flex flex-col items-center justify-center transition-all duration-200 group relative overflow-hidden {settings.fontFamily === font.value ? 'bg-[#818cf8]/10 border-[#818cf8]/50 text-[#818cf8]' : 'bg-[#2e3245]/50 border-transparent hover:bg-[#2e3245] text-[#a1a1aa] hover:text-[#f4f4f5]'}"><span class="text-sm font-medium z-10 truncate w-full px-2" style="font-family: {font.value}">{font.name}</span><span class="text-[10px] opacity-60 z-10">{font.label}</span></button>
+             {/each}
+           </div>
+        </div>
+        <div class="space-y-2">
+           <label class="text-[11px] font-bold text-[#71717a] uppercase tracking-widest">Weight</label>
+           <div class="grid grid-cols-3 gap-2">
+             {#each weightOptions as weight}
+               <button onclick={() => settings.fontWeight = weight.value} class="h-8 rounded-md text-xs font-medium transition-all duration-200 border {settings.fontWeight === weight.value ? 'bg-[#818cf8]/10 border-[#818cf8]/50 text-[#818cf8]' : 'bg-[#2e3245]/50 border-transparent hover:bg-[#2e3245] text-[#a1a1aa] hover:text-[#f4f4f5]'}">{weight.label}</button>
+             {/each}
+           </div>
+        </div>
+        <div class="space-y-6">
+            <div class="space-y-3"><div class="flex justify-between text-xs text-[#a1a1aa]"><span>Font Size</span><span class="font-mono text-[#818cf8]">{settings.fontSize}px</span></div><input type="range" min="12" max="32" step="1" bind:value={settings.fontSize} class="w-full h-1.5 bg-[#2e3245] rounded-full appearance-none cursor-pointer accent-[#818cf8]"></div>
+            <div class="space-y-3"><div class="flex justify-between text-xs text-[#a1a1aa]"><span>Line Height</span><span class="font-mono text-[#818cf8]">{settings.lineHeight}</span></div><input type="range" min="1.0" max="2.5" step="0.1" bind:value={settings.lineHeight} class="w-full h-1.5 bg-[#2e3245] rounded-full appearance-none cursor-pointer accent-[#818cf8]"></div>
+        </div>
+        <div class="pt-6 border-t border-[#2e3245] space-y-4">
+            <label class="flex items-center justify-between cursor-pointer group"><span class="text-sm text-[#d4d4d8] group-hover:text-white transition-colors">Word Wrap</span><div class="relative"><input type="checkbox" bind:checked={settings.wordWrap} class="sr-only peer"><div class="w-10 h-5 bg-[#2e3245] rounded-full peer peer-checked:bg-[#818cf8] transition-colors"></div><div class="absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-full shadow-sm"></div></div></label>
+            <label class="flex items-center justify-between cursor-pointer group"><span class="text-sm text-[#d4d4d8] group-hover:text-white transition-colors">Line Numbers</span><div class="relative"><input type="checkbox" bind:checked={settings.showLineNumbers} class="sr-only peer"><div class="w-10 h-5 bg-[#2e3245] rounded-full peer peer-checked:bg-[#818cf8] transition-colors"></div><div class="absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-full shadow-sm"></div></div></label>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
