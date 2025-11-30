@@ -14,7 +14,8 @@
   } from 'lucide-svelte';
 
   let { 
-    notepadMode = $bindable(), 
+    settings = $bindable(), 
+    headerThemeClasses,
     rainMode = $bindable(), 
     showSettings = $bindable(), 
     showSearch = $bindable(),
@@ -31,7 +32,8 @@
     handleSave,
     confirmAction
   } = $props<{
-    notepadMode: boolean;
+    settings: AppSettings;
+    headerThemeClasses: string;
     rainMode: boolean;
     showSettings: boolean;
     showSearch: boolean;
@@ -48,9 +50,15 @@
     handleSave: () => void;
     confirmAction: (fn: () => void) => void;
   }>();
+
+  let notepadMode = $derived(settings.notepadMode);
+
+  function toggleNotepadMode() {
+      settings.notepadMode = !settings.notepadMode;
+  }
 </script>
 
-<header class="h-12 flex items-center justify-between px-4 draggable-region z-50 border-b transition-colors duration-500 relative backdrop-blur-md shrink-0 {notepadMode ? 'bg-[#fdfbf7]/80 border-gray-300' : 'bg-[#0e1019]/80 border-[#2e3245]'}">
+<header class="h-12 flex items-center justify-between px-4 draggable-region z-50 border-b transition-colors duration-500 relative backdrop-blur-md shrink-0 select-none {notepadMode ? 'bg-[#fdfbf7]/80 border-gray-300' : 'bg-[#0e1019]/80 border-[#2e3245]'}">
   <div class="flex items-center gap-4">
     {#if isMacOrLinux}
       <div class="flex items-center gap-2 no-drag group">
@@ -65,12 +73,13 @@
     </div>
   </div>
 
+  <!-- Right Toolbar - Wrapped in no-drag to prevent button drag issues, but allows drag in empty space to the left of this block -->
   <div class="flex items-center gap-1">
      <button onclick={toggleSearch} title="Find (Ctrl+F)" class="p-2 rounded-lg transition-all active:scale-95 no-drag {showSearch ? 'text-[#fbbf24] bg-[#fbbf24]/10' : (notepadMode ? 'text-gray-400 hover:text-gray-800' : 'text-gray-500 hover:text-[#fbbf24] hover:bg-white/5')}">
        <Search size="18" strokeWidth={2} />
      </button>
      <div class="w-px h-4 mx-2 {notepadMode ? 'bg-gray-300' : 'bg-[#2e3245]'}"></div>
-     <button onclick={() => notepadMode = !notepadMode} title="Notepad Mode" class="p-2 rounded-lg transition-all active:scale-95 no-drag {notepadMode ? 'text-gray-800 bg-gray-200' : 'text-gray-500 hover:text-[#818cf8]'}">
+     <button onclick={toggleNotepadMode} title="Notepad Mode" class="p-2 rounded-lg transition-all active:scale-95 no-drag {notepadMode ? 'text-gray-800 bg-gray-200' : 'text-gray-500 hover:text-[#818cf8]'}">
        <FileText size="18" strokeWidth={2} />
      </button>
      <button onclick={() => rainMode = !rainMode} title="Rain Mode" class="p-2 rounded-lg transition-all active:scale-95 no-drag {rainMode ? 'text-[#818cf8] bg-[#818cf8]/10' : (notepadMode ? 'text-gray-400' : 'text-gray-500 hover:text-[#818cf8]')}">

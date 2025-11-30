@@ -5,4 +5,6 @@ export interface AppSettings {
   wordWrap: boolean;
   lineHeight: number;
   showLineNumbers: boolean;
+  theme: 'dark' | 'light' | 'midnight' | 'forest';
+  notepadMode: boolean;
 }

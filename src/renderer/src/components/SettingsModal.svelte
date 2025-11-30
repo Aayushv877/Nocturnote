@@ -26,6 +26,13 @@
     { label: 'Normal', value: 400 },
     { label: 'Medium', value: 500 }
   ];
+
+  const themeOptions = [
+    { label: 'Dark', value: 'dark' },
+    { label: 'Light', value: 'light' },
+    { label: 'Midnight', value: 'midnight' },
+    { label: 'Forest', value: 'forest' }
+  ];
 </script>
 
 {#if showSettings}
@@ -36,6 +43,14 @@
         <button onclick={() => showSettings = false} class="text-[#71717a] hover:text-[#f4f4f5] transition-colors text-xs uppercase tracking-wider font-bold">Close</button>
       </div>
       <div class="p-6 space-y-8">
+        <div class="space-y-3">
+           <label class="text-[11px] font-bold text-[#71717a] uppercase tracking-widest">Theme</label>
+           <div class="grid grid-cols-2 gap-2">
+             {#each themeOptions as theme}
+               <button onclick={() => settings.theme = theme.value as any} class="h-10 rounded-lg border flex flex-col items-center justify-center transition-all duration-200 group relative overflow-hidden {settings.theme === theme.value ? 'bg-[#818cf8]/10 border-[#818cf8]/50 text-[#818cf8]' : 'bg-[#2e3245]/50 border-transparent hover:bg-[#2e3245] text-[#a1a1aa] hover:text-[#f4f4f5]'}"><span class="text-xs font-medium z-10">{theme.label}</span></button>
+             {/each}
+           </div>
+        </div>
         <div class="space-y-3">
            <label class="text-[11px] font-bold text-[#71717a] uppercase tracking-widest">Typography</label>
            <div class="grid grid-cols-2 gap-2">

@@ -30,7 +30,7 @@
   let showUnsavedDialog = $state(false);
   let showAbout = $state(false);
   let rainMode = $state(false);
-  let notepadMode = $state(false);
+  // notepadMode is now derived from settings.theme
 
   // Search State
   let searchQuery = $state('');
@@ -56,10 +56,47 @@
     fontWeight: 400,
     wordWrap: true,
     lineHeight: 1.6,
-    showLineNumbers: true
+    showLineNumbers: true,
+    theme: 'dark',
+    notepadMode: false
   });
 
   // --- DERIVED CALCULATIONS ---
+  let notepadMode = $derived(settings.notepadMode);
+  
+  let themeClasses = $derived.by(() => {
+    if (settings.notepadMode) return 'bg-[#fdfbf7] text-[#2d3436] selection:bg-[#fde047] selection:text-black';
+    switch (settings.theme) {
+      case 'light': return 'bg-[#ffffff] text-[#2d3436] selection:bg-[#e5e7eb] selection:text-black'; // Standard light theme
+      case 'midnight': return 'bg-[#000000] text-[#a1a1aa] selection:bg-[#4f46e5]/50 selection:text-white';
+      case 'forest': return 'bg-[#0f172a] text-[#e2e8f0] selection:bg-[#10b981]/50 selection:text-white';
+      case 'dark':
+      default: return 'bg-[#0e1019] text-[#cbd5e1] selection:bg-[#fbbf24]/50 selection:text-white';
+    }
+  });
+
+  let headerThemeClasses = $derived.by(() => {
+    if (settings.notepadMode) return 'bg-[#fdfbf7]/80 border-gray-300';
+    switch (settings.theme) {
+      case 'light': return 'bg-[#ffffff]/80 border-gray-200';
+      case 'midnight': return 'bg-[#000000]/80 border-[#27272a]';
+      case 'forest': return 'bg-[#0f172a]/80 border-[#1e293b]';
+      case 'dark':
+      default: return 'bg-[#0e1019]/80 border-[#2e3245]';
+    }
+  });
+
+  let footerThemeClasses = $derived.by(() => {
+    if (settings.notepadMode) return 'bg-[#fdfbf7] border-gray-300 text-gray-500';
+    switch (settings.theme) {
+      case 'light': return 'bg-[#ffffff] border-gray-200 text-gray-500';
+      case 'midnight': return 'bg-[#000000] border-[#27272a] text-[#52525b]';
+      case 'forest': return 'bg-[#0f172a] border-[#1e293b] text-[#64748b]';
+      case 'dark':
+      default: return 'bg-[#0e1019] border-[#2e3245] text-[#52525b]';
+    }
+  });
+
   let lineHeightPx = $derived(settings.fontSize * settings.lineHeight);
   const editorPaddingTop = 8;
   let baselineOffset = $derived(editorPaddingTop - (lineHeightPx * 0.15));
@@ -417,12 +454,13 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="h-screen w-screen flex flex-col overflow-hidden overscroll-none transition-colors duration-500 relative antialiased {notepadMode ? 'bg-[#fdfbf7] text-[#2d3436] selection:bg-[#fde047] selection:text-black' : 'bg-[#0e1019] text-[#cbd5e1] selection:bg-[#fbbf24]/50 selection:text-white'}" style="font-family: system-ui, sans-serif; text-rendering: optimizeLegibility;">
+<div class="h-screen w-screen flex flex-col overflow-hidden overscroll-none transition-colors duration-500 relative antialiased {themeClasses}" style="font-family: system-ui, sans-serif; text-rendering: optimizeLegibility;">
   
   <RainEffect {rainMode} {notepadMode} />
 
   <Header 
-    bind:notepadMode 
+    bind:settings
+    {headerThemeClasses}
     bind:rainMode 
     bind:showSettings 
     bind:showSearch
@@ -446,6 +484,7 @@
     bind:searchQuery
     bind:replaceQuery
     {notepadMode}
+    {headerThemeClasses}
     {performSearch}
     {toggleSearch}
     {replaceCurrent}
@@ -477,6 +516,7 @@
   <Footer 
     {content} 
     {notepadMode} 
+    {footerThemeClasses}
     {statusMessage} 
     {showSearch} 
     {searchFeedback} 
