@@ -89,7 +89,7 @@
      <button onclick={toggleNotepadMode} title="Notepad Mode" class="p-2 rounded-lg transition-all active:scale-95 no-drag {notepadMode ? 'text-gray-800 bg-gray-200' : 'text-gray-500 hover:text-[#818cf8]'}">
        <FileText size="18" strokeWidth={2} />
      </button>
-     <button onclick={toggleMarkdownMode} title="Markdown Preview" class="p-2 rounded-lg transition-all active:scale-95 no-drag {markdownMode ? 'text-gray-800 bg-gray-200' : 'text-gray-500 hover:text-[#818cf8]'}">
+     <button onclick={toggleMarkdownMode} title="Markdown Preview" class="p-2 rounded-lg transition-all active:scale-95 no-drag {markdownMode ? 'text-[#818cf8] bg-[#818cf8]/10' : (notepadMode ? 'text-gray-400' : 'text-gray-500 hover:text-[#818cf8]')}">
        <Columns size="18" strokeWidth={2} />
      </button>
      <button onclick={() => rainMode = !rainMode} title="Rain Mode" class="p-2 rounded-lg transition-all active:scale-95 no-drag {rainMode ? 'text-[#818cf8] bg-[#818cf8]/10' : (notepadMode ? 'text-gray-400' : 'text-gray-500 hover:text-[#818cf8]')}">

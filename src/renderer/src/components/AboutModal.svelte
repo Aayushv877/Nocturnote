@@ -21,7 +21,7 @@
 {#if showAbout}
   <div transition:fade={{ duration: 150 }} class="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm no-drag" onclick={() => showAbout = false}>
     <div transition:scale={{ duration: 200, start: 0.95 }} class="w-[400px] bg-[#18181b] border border-[#2e3245] rounded-xl shadow-2xl overflow-hidden" onclick={(e) => e.stopPropagation()}>
-      
+
       <!-- Header -->
       <div class="px-6 py-4 border-b border-[#2e3245] flex justify-between items-center bg-[#0e1019]">
         <h2 class="text-sm font-semibold tracking-wide text-[#f4f4f5]">About</h2>
@@ -30,10 +30,10 @@
 
       <!-- Content -->
       <div class="p-8 flex flex-col items-center text-center space-y-6">
-        
+
         <!-- Logo/Icon Placeholder -->
         <div class="w-20 h-20 bg-gradient-to-br from-[#818cf8] to-[#6366f1] rounded-2xl flex items-center justify-center shadow-lg shadow-[#818cf8]/20 mb-2">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <img src="/icon.png" alt="App Icon" class="w-20 h-20" />
         </div>
 
         <div class="space-y-2">

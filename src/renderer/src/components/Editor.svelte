@@ -1,10 +1,15 @@
 <script lang="ts">
     import type { AppSettings } from '../types';
+    import { tick } from 'svelte';
+    import { Bold, Italic } from 'lucide-svelte';
+    import { fade, scale } from 'svelte/transition';
     
     let { 
         content = $bindable(), 
         settings, 
         notepadMode,
+        markdownMode = false,
+        markdownHTML = '',
         lineHeights, 
         lineNumWidth, 
         lineHeightPx, 
@@ -19,9 +24,7 @@
         handleScroll,
         handleInput,
         textLines,
-        onEditorClick,
-        markdownMode = false,
-        markdownHTML = ''
+        onEditorClick
     } = $props<{
         content: string;
         settings: AppSettings;
@@ -49,12 +52,17 @@
     let isResizing = $state(false);
     let splitRatio = $state(50);
 
+    // Formatting Toolbar State
+    let showToolbar = $state(false);
+    let toolbarPos = $state({ x: 0, y: 0 });
+    let isFormatting = false;
+
     function startResize() {
         isResizing = true;
         window.addEventListener('mousemove', handleResize);
         window.addEventListener('mouseup', stopResize);
         document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none'; // Prevent selection while dragging
+        document.body.style.userSelect = 'none'; 
     }
 
     function stopResize() {
@@ -70,11 +78,89 @@
         const rect = containerRef.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const newRatio = (offsetX / rect.width) * 100;
-        splitRatio = Math.max(20, Math.min(80, newRatio)); // Clamp between 20% and 80%
+        splitRatio = Math.max(20, Math.min(80, newRatio)); 
     }
 
     function resetResize() {
         splitRatio = 50;
+    }
+
+    async function applyFormat(type: 'bold' | 'italic') {
+        if (!textAreaRef || isFormatting) return;
+        isFormatting = true;
+        
+        try {
+            const start = textAreaRef.selectionStart;
+            const end = textAreaRef.selectionEnd;
+            
+            const selectedText = content.substring(start, end);
+            const marker = type === 'bold' ? '**' : '_';
+            const newText = marker + selectedText + marker;
+
+            // Apply change to content state
+            content = content.substring(0, start) + newText + content.substring(end);
+            
+            // Wait for Svelte to update the DOM (textarea value)
+            await tick();
+
+            // Trigger parent updates (line heights, unsaved status)
+            // handleInput reads e.target.value, which is now updated
+            handleInput({ target: textAreaRef } as unknown as Event);
+            
+            // Select the newly formatted text (including markers)
+            textAreaRef.setSelectionRange(start, start + newText.length);
+            textAreaRef.focus();
+        } finally {
+            isFormatting = false;
+            showToolbar = false;
+        }
+    }
+
+    function handleTextareaKeydown(e: KeyboardEvent) {
+        const ctrl = e.ctrlKey || e.metaKey;
+        const key = e.key.toLowerCase();
+
+        if (ctrl) {
+            if (key === 'b') {
+                e.preventDefault();
+                applyFormat('bold');
+            } else if (key === 'i') {
+                e.preventDefault();
+                applyFormat('italic');
+            }
+        }
+    }
+
+    function handleMouseUp(e: MouseEvent) {
+        const { clientX, clientY } = e;
+        // Use setTimeout to ensure selection state is updated after the event
+        setTimeout(() => {
+            if (!textAreaRef) return;
+            const start = textAreaRef.selectionStart;
+            const end = textAreaRef.selectionEnd;
+
+            if (start !== end) {
+                showToolbar = true;
+                // Position relative to viewport, shifted below cursor
+                toolbarPos = { x: clientX, y: clientY + 15 }; 
+            } else {
+                showToolbar = false;
+            }
+        }, 0);
+    }
+
+    function handleKeyUp(e: KeyboardEvent) {
+        // Hide toolbar if selection is cleared via keyboard
+        if (!textAreaRef) return;
+        const start = textAreaRef.selectionStart;
+        const end = textAreaRef.selectionEnd;
+        if (start === end) {
+            showToolbar = false;
+        }
+    }
+
+    function handleTextAreaClick() {
+        onEditorClick();
     }
 
 </script>
@@ -98,7 +184,10 @@
             <textarea 
                 bind:this={textAreaRef} 
                 onscroll={handleScroll} 
-                onclick={onEditorClick} 
+                onclick={handleTextAreaClick} 
+                onkeydown={handleTextareaKeydown}
+                onkeyup={handleKeyUp}
+                onmouseup={handleMouseUp}
                 value={content} 
                 oninput={handleInput} 
                 spellcheck="false" 
@@ -122,18 +211,38 @@
     {#if markdownMode}
         <!-- Resizer -->
         <div 
-            class="w-1.5 {notepadMode ? 'bg-gray-200 hover:bg-gray-300' : 'bg-[#1e293b] hover:bg-[#334155]'} hover:cursor-col-resize cursor-col-resize shrink-0 z-50 transition-colors duration-200 flex items-center justify-center"
+            class="w-3 hover:cursor-col-resize cursor-col-resize shrink-0 z-50 flex items-center justify-center"
             onmousedown={startResize}
             ondblclick={resetResize}
             role="separator"
             aria-label="Resize split view"
         >
-            <div class="w-0.5 h-8 {notepadMode ? 'bg-gray-400' : 'bg-gray-600'} rounded-full opacity-50"></div>
+            <div class="h-full border-l-2 border-dotted {notepadMode ? 'border-gray-300' : 'border-gray-700'}"></div>
         </div>
 
         <!-- Markdown Preview Pane -->
-        <div class="flex-1 h-full min-w-0 overflow-y-auto p-8 prose {notepadMode ? 'prose-slate' : 'prose-invert'} max-w-none break-words font-sans">
+        <div class="flex-1 h-full min-w-0 overflow-y-auto p-8 prose {notepadMode ? 'prose-slate' : 'prose-invert'} max-w-none break-words font-mono">
             {@html markdownHTML}
+        </div>
+    {/if}
+    
+    <!-- Floating Formatting Toolbar -->
+    {#if showToolbar}
+        <div 
+            class="fixed z-[200]" 
+            style="top: {toolbarPos.y}px; left: {toolbarPos.x}px; transform: translateX(-50%); pointer-events: auto;"
+        >
+            <div 
+                transition:scale={{ duration: 150, start: 0.95 }}
+                class="flex items-center gap-1 p-1.5 rounded-lg shadow-xl border {notepadMode ? 'bg-white border-gray-200' : 'bg-[#18181b] border-[#2e3245]'}"
+            >
+                <button onmousedown={(e) => { e.preventDefault(); applyFormat('bold'); }} class="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 {notepadMode ? 'text-gray-700' : 'text-gray-300'} transition-colors" title="Bold (Ctrl+B)">
+                    <Bold size="16" strokeWidth={2.5} />
+                </button>
+                <button onmousedown={(e) => { e.preventDefault(); applyFormat('italic'); }} class="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 {notepadMode ? 'text-gray-700' : 'text-gray-300'} transition-colors" title="Italic (Ctrl+I)">
+                    <Italic size="16" strokeWidth={2.5} />
+                </button>
+            </div>
         </div>
     {/if}
 </main>
@@ -144,10 +253,14 @@
   textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
   textarea::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); border: 2px solid transparent; background-clip: content-box; }
   
+  /* Search Highlighting */
+  :global(.highlight-match) { background-color: rgba(251, 191, 36, 0.2); color: transparent; border-radius: 2px; }
+  :global(.highlight-active) { background-color: #f97316; color: transparent; border-radius: 2px; outline: 1px solid rgba(255,255,255,0.3); }
+
   /* Enhanced Markdown Styling */
   :global(.prose) {
-    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    line-height: 1.7;
+    font-family: "ui-monospace", "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+    line-height: 1.6;
   }
   :global(.prose h1) { font-size: 2.25em; font-weight: 800; margin-top: 0; margin-bottom: 0.8em; letter-spacing: -0.025em; line-height: 1.1; }
   :global(.prose h2) { font-size: 1.75em; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.6em; letter-spacing: -0.025em; line-height: 1.2; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 0.3em; }
