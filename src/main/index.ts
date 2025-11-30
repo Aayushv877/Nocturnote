@@ -109,7 +109,10 @@ if (!gotTheLock) {
           const { canceled, filePath: savePath } = await dialog.showSaveDialog({
             title: 'Save Note',
             defaultPath: 'Untitled.txt',
-            filters: [{ name: 'Text Files', extensions: ['txt', 'md'] }]
+            filters: [
+              { name: 'Text File', extensions: ['txt'] },
+              { name: 'Markdown File', extensions: ['md'] }
+            ]
           })
           if (canceled) return { success: false }
           targetPath = savePath
@@ -140,7 +143,7 @@ if (!gotTheLock) {
         return { canceled: true, error: 'Failed to open' }
       }
     })
-    
+
     // Handle Initial File Check from Renderer
     ipcMain.handle('get-initial-file', () => {
         const file = pendingFile;

@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { AppSettings } from '../types';
     import { tick } from 'svelte';
-    import { Bold, Italic } from 'lucide-svelte';
+    import { Bold, Italic, Heading } from 'lucide-svelte';
     import { fade, scale } from 'svelte/transition';
     
     let { 
@@ -85,7 +85,7 @@
         splitRatio = 50;
     }
 
-    async function applyFormat(type: 'bold' | 'italic') {
+    async function applyFormat(type: 'bold' | 'italic' | 'heading') {
         if (!textAreaRef || isFormatting) return;
         isFormatting = true;
         
@@ -94,8 +94,14 @@
             const end = textAreaRef.selectionEnd;
             
             const selectedText = content.substring(start, end);
-            const marker = type === 'bold' ? '**' : '_';
-            const newText = marker + selectedText + marker;
+            let newText = '';
+            
+            if (type === 'heading') {
+                newText = `# ${selectedText}`;
+            } else {
+                const marker = type === 'bold' ? '**' : '_';
+                newText = marker + selectedText + marker;
+            }
 
             // Apply change to content state
             content = content.substring(0, start) + newText + content.substring(end);
@@ -104,7 +110,6 @@
             await tick();
 
             // Trigger parent updates (line heights, unsaved status)
-            // handleInput reads e.target.value, which is now updated
             handleInput({ target: textAreaRef } as unknown as Event);
             
             // Select the newly formatted text (including markers)
@@ -132,7 +137,9 @@
     }
 
     function handleMouseUp(e: MouseEvent) {
+        // Capture coordinates immediately to avoid event staleness issues
         const { clientX, clientY } = e;
+        
         // Use setTimeout to ensure selection state is updated after the event
         setTimeout(() => {
             if (!textAreaRef) return;
@@ -141,7 +148,7 @@
 
             if (start !== end) {
                 showToolbar = true;
-                // Position relative to viewport, shifted below cursor
+                // Position relative to viewport, shifted below
                 toolbarPos = { x: clientX, y: clientY + 15 }; 
             } else {
                 showToolbar = false;
@@ -230,7 +237,7 @@
     {#if showToolbar}
         <div 
             class="fixed z-[200]" 
-            style="top: {toolbarPos.y}px; left: {toolbarPos.x}px; transform: translateX(-50%); pointer-events: auto;"
+            style="top: {toolbarPos.y}px; left: {toolbarPos.x}px; transform: translateX(-50%);"
         >
             <div 
                 transition:scale={{ duration: 150, start: 0.95 }}
@@ -241,6 +248,9 @@
                 </button>
                 <button onmousedown={(e) => { e.preventDefault(); applyFormat('italic'); }} class="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 {notepadMode ? 'text-gray-700' : 'text-gray-300'} transition-colors" title="Italic (Ctrl+I)">
                     <Italic size="16" strokeWidth={2.5} />
+                </button>
+                <button onmousedown={(e) => { e.preventDefault(); applyFormat('heading'); }} class="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 {notepadMode ? 'text-gray-700' : 'text-gray-300'} transition-colors" title="Heading">
+                    <Heading size="16" strokeWidth={2.5} />
                 </button>
             </div>
         </div>
