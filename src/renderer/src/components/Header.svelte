@@ -10,8 +10,10 @@
     Minus, 
     Square, 
     X,
-    Info
+    Info,
+    Columns
   } from 'lucide-svelte';
+  import type { AppSettings } from '../types';
 
   let { 
     settings = $bindable(), 
@@ -52,13 +54,18 @@
   }>();
 
   let notepadMode = $derived(settings.notepadMode);
+  let markdownMode = $derived(settings.markdownMode);
 
   function toggleNotepadMode() {
       settings.notepadMode = !settings.notepadMode;
   }
+
+  function toggleMarkdownMode() {
+      settings.markdownMode = !settings.markdownMode;
+  }
 </script>
 
-<header class="h-12 flex items-center justify-between px-4 draggable-region z-50 border-b transition-colors duration-500 relative backdrop-blur-md shrink-0 select-none {notepadMode ? 'bg-[#fdfbf7]/80 border-gray-300' : 'bg-[#0e1019]/80 border-[#2e3245]'}">
+<header class="h-12 flex items-center justify-between px-4 draggable-region z-50 border-b transition-colors duration-500 relative backdrop-blur-md shrink-0 select-none {headerThemeClasses}">
   <div class="flex items-center gap-4">
     {#if isMacOrLinux}
       <div class="flex items-center gap-2 no-drag group">
@@ -81,6 +88,9 @@
      <div class="w-px h-4 mx-2 {notepadMode ? 'bg-gray-300' : 'bg-[#2e3245]'}"></div>
      <button onclick={toggleNotepadMode} title="Notepad Mode" class="p-2 rounded-lg transition-all active:scale-95 no-drag {notepadMode ? 'text-gray-800 bg-gray-200' : 'text-gray-500 hover:text-[#818cf8]'}">
        <FileText size="18" strokeWidth={2} />
+     </button>
+     <button onclick={toggleMarkdownMode} title="Markdown Preview" class="p-2 rounded-lg transition-all active:scale-95 no-drag {markdownMode ? 'text-gray-800 bg-gray-200' : 'text-gray-500 hover:text-[#818cf8]'}">
+       <Columns size="18" strokeWidth={2} />
      </button>
      <button onclick={() => rainMode = !rainMode} title="Rain Mode" class="p-2 rounded-lg transition-all active:scale-95 no-drag {rainMode ? 'text-[#818cf8] bg-[#818cf8]/10' : (notepadMode ? 'text-gray-400' : 'text-gray-500 hover:text-[#818cf8]')}">
        <CloudRain size="18" strokeWidth={2} />

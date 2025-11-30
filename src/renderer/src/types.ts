@@ -7,4 +7,5 @@ export interface AppSettings {
   showLineNumbers: boolean;
   theme: 'dark' | 'light' | 'midnight' | 'forest';
   notepadMode: boolean;
+  markdownMode: boolean;
 }

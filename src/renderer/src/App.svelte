@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
+  import { marked } from 'marked';
   import type { AppSettings } from './types';
   
   // Components
@@ -30,12 +31,11 @@
   let showUnsavedDialog = $state(false);
   let showAbout = $state(false);
   let rainMode = $state(false);
-  // notepadMode is now derived from settings.theme
-
+  
   // Search State
   let searchQuery = $state('');
   let replaceQuery = $state('');
-  let searchInputRef: HTMLInputElement; // This ref is inside SearchBar now, might not need direct access if we handle focus differently, or bind it.
+  let searchInputRef: HTMLInputElement; 
   let activeMatchIndex = $state(-1);
   let searchFeedback = $state('');
 
@@ -58,16 +58,30 @@
     lineHeight: 1.6,
     showLineNumbers: true,
     theme: 'dark',
-    notepadMode: false
+    notepadMode: false,
+    markdownMode: false
   });
 
   // --- DERIVED CALCULATIONS ---
   let notepadMode = $derived(settings.notepadMode);
+  let markdownMode = $derived(settings.markdownMode);
+  let markdownHTML = $state('');
+
+  $effect(() => {
+    if (markdownMode) {
+      const res = marked.parse(content);
+      if (res instanceof Promise) {
+        res.then(r => markdownHTML = r);
+      } else {
+        markdownHTML = res;
+      }
+    }
+  });
   
   let themeClasses = $derived.by(() => {
     if (settings.notepadMode) return 'bg-[#fdfbf7] text-[#2d3436] selection:bg-[#fde047] selection:text-black';
     switch (settings.theme) {
-      case 'light': return 'bg-[#ffffff] text-[#2d3436] selection:bg-[#e5e7eb] selection:text-black'; // Standard light theme
+      case 'light': return 'bg-[#ffffff] text-[#2d3436] selection:bg-[#e5e7eb] selection:text-black'; 
       case 'midnight': return 'bg-[#000000] text-[#a1a1aa] selection:bg-[#4f46e5]/50 selection:text-white';
       case 'forest': return 'bg-[#0f172a] text-[#e2e8f0] selection:bg-[#10b981]/50 selection:text-white';
       case 'dark':
@@ -500,6 +514,8 @@
     bind:measureRef
     {settings}
     {notepadMode}
+    {markdownMode}
+    {markdownHTML}
     {lineHeights}
     {lineNumWidth}
     {lineHeightPx}
