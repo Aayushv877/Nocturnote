@@ -4,8 +4,29 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import fs from 'fs/promises'
 import icon from '../../resources/icon.png?asset'
 
+let mainWindow: BrowserWindow | null = null
+let pendingFile: { content: string; filePath: string } | null = null
+
+async function loadFileFromArgv(argv: string[]): Promise<{ content: string; filePath: string } | null> {
+  // In production on Windows, the first argument is the executable, the second is often the file path.
+  // We skip this in dev to avoid picking up dev server args.
+  if (!is.dev && process.platform === 'win32' && argv.length >= 2) {
+    const filePath = argv[1]
+    // Basic validation to ensure it's likely a file path and not a flag
+    if (filePath && !filePath.startsWith('-')) {
+      try {
+        const content = await fs.readFile(filePath, 'utf-8')
+        return { content, filePath }
+      } catch (error) {
+        console.error('Failed to read initial file:', error)
+      }
+    }
+  }
+  return null
+}
+
 function createWindow(): void {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -20,7 +41,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow!.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -36,73 +57,104 @@ function createWindow(): void {
   }
 
   // --- Window Control Handlers ---
-  ipcMain.on('window-minimize', () => mainWindow.minimize())
+  ipcMain.on('window-minimize', () => mainWindow?.minimize())
   ipcMain.on('window-maximize', () => {
-    if (mainWindow.isMaximized()) {
+    if (mainWindow?.isMaximized()) {
       mainWindow.unmaximize()
     } else {
-      mainWindow.maximize()
+      mainWindow?.maximize()
     }
   })
-  ipcMain.on('window-close', () => mainWindow.close())
+  ipcMain.on('window-close', () => mainWindow?.close())
 }
 
-app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.electron')
+// Single Instance Lock
+const gotTheLock = app.requestSingleInstanceLock()
 
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', async (_, argv) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+
+      // Check for file in the new arguments
+      const fileData = await loadFileFromArgv(argv)
+      if (fileData) {
+        mainWindow.webContents.send('open-file-content', fileData)
+      }
+    }
   })
 
-  // --- File I/O Handlers ---
+  app.whenReady().then(async () => {
+    electronApp.setAppUserModelId('com.fezcode.nocturnote')
 
-  // Handle Save
-  ipcMain.handle('save-file', async (_, { content, filePath }) => {
-    try {
-      let targetPath = filePath
-      // If no path provided, show Save Dialog
-      if (!targetPath) {
-        const { canceled, filePath: savePath } = await dialog.showSaveDialog({
-          title: 'Save Note',
-          defaultPath: 'Untitled.txt',
+    // Check initial file on startup
+    pendingFile = await loadFileFromArgv(process.argv)
+
+    app.on('browser-window-created', (_, window) => {
+      optimizer.watchWindowShortcuts(window)
+    })
+
+    // --- File I/O Handlers ---
+
+    // Handle Save
+    ipcMain.handle('save-file', async (_, { content, filePath }) => {
+      try {
+        let targetPath = filePath
+        // If no path provided, show Save Dialog
+        if (!targetPath) {
+          const { canceled, filePath: savePath } = await dialog.showSaveDialog({
+            title: 'Save Note',
+            defaultPath: 'Untitled.txt',
+            filters: [{ name: 'Text Files', extensions: ['txt', 'md'] }]
+          })
+          if (canceled) return { success: false }
+          targetPath = savePath
+        }
+
+        await fs.writeFile(targetPath, content, 'utf-8')
+        return { success: true, filePath: targetPath }
+      } catch (error) {
+        console.error(error)
+        return { success: false, error: 'Failed to save' }
+      }
+    })
+
+    // Handle Open
+    ipcMain.handle('open-file', async () => {
+      try {
+        const { canceled, filePaths } = await dialog.showOpenDialog({
+          properties: ['openFile'],
           filters: [{ name: 'Text Files', extensions: ['txt', 'md'] }]
         })
-        if (canceled) return { success: false }
-        targetPath = savePath
+
+        if (canceled || filePaths.length === 0) return { canceled: true }
+
+        const content = await fs.readFile(filePaths[0], 'utf-8')
+        return { canceled: false, filePath: filePaths[0], content }
+      } catch (error) {
+        console.error(error)
+        return { canceled: true, error: 'Failed to open' }
       }
+    })
+    
+    // Handle Initial File Check from Renderer
+    ipcMain.handle('get-initial-file', () => {
+        const file = pendingFile;
+        pendingFile = null; // Clear it
+        return file;
+    })
 
-      await fs.writeFile(targetPath, content, 'utf-8')
-      return { success: true, filePath: targetPath }
-    } catch (error) {
-      console.error(error)
-      return { success: false, error: 'Failed to save' }
-    }
+    createWindow()
+
+    app.on('activate', function () {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
   })
-
-  // Handle Open
-  ipcMain.handle('open-file', async () => {
-    try {
-      const { canceled, filePaths } = await dialog.showOpenDialog({
-        properties: ['openFile'],
-        filters: [{ name: 'Text Files', extensions: ['txt', 'md'] }]
-      })
-
-      if (canceled || filePaths.length === 0) return { canceled: true }
-
-      const content = await fs.readFile(filePaths[0], 'utf-8')
-      return { canceled: false, filePath: filePaths[0], content }
-    } catch (error) {
-      console.error(error)
-      return { canceled: true, error: 'Failed to open' }
-    }
-  })
-
-  createWindow()
-
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

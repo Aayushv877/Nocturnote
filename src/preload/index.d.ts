@@ -18,6 +18,8 @@ declare global {
       maximize: () => void
       close: () => void
       platform: NodeJS.Platform
+      getInitialFile: () => Promise<{ content: string; filePath: string } | null>
+      onFileOpened: (callback: (content: string, filePath: string) => void) => void
     }
   }
 }

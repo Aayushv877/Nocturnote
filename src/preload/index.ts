@@ -9,6 +9,11 @@ const api = {
 
   openFile: () => ipcRenderer.invoke('open-file'),
 
+  // Startup & External Open
+  getInitialFile: () => ipcRenderer.invoke('get-initial-file'),
+  onFileOpened: (callback: (content: string, filePath: string) => void) =>
+    ipcRenderer.on('open-file-content', (_, value) => callback(value.content, value.filePath)),
+
   // Window Controls
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),

@@ -115,6 +115,31 @@
     calculateLineHeights();
     window.addEventListener('resize', calculateLineHeights);
     window.addEventListener('keydown', preventRefresh);
+
+    // Check for initial file
+    window.api.getInitialFile().then((file) => {
+      if (file) {
+        content = file.content;
+        filePath = file.filePath;
+        isSaved = true;
+        flashStatus('Opened');
+        calculateLineHeights();
+      }
+    });
+
+    // Listen for files opened externally while running
+    window.api.onFileOpened((newContent, newPath) => {
+      if (!isSaved) {
+         // Simple native confirm for external events to ensure safety
+         if (!confirm('You have unsaved changes. Open the new file anyway?')) return;
+      }
+      content = newContent;
+      filePath = newPath;
+      isSaved = true;
+      flashStatus('Opened');
+      calculateLineHeights();
+    });
+
     return () => {
       window.removeEventListener('resize', calculateLineHeights);
       window.removeEventListener('keydown', preventRefresh);

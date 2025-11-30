@@ -1,5 +1,7 @@
 appId: com.fezcode.nocturnote
 productName: Nocturnote
+executableName: NocturnoteTextEditor
+copyright: Copyright © 2025 fezcode
 icon: resources/icon.png
 fileAssociations:
   - ext: txt
