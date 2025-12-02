@@ -52,6 +52,8 @@
   let isResizing = $state(false)
   let splitRatio = $state(50)
   let editorWidth = $state(0)
+  let previewRef = $state<HTMLDivElement>()
+  let isSyncingScroll = false
 
   // REACTIVE WIDTH TRACKING:
   // Uses ResizeObserver to track the exact width of the textarea.
@@ -103,11 +105,53 @@
     splitRatio = 50
   }
 
+  // SYNC SCROLL LOGIC
+  // Synchronizes scrolling between the editor and preview pane based on line counts.
+  // This provides a more accurate text-to-text alignment than percentage-based scrolling.
+  // Uses `isSyncingScroll` flag to prevent infinite scroll event loops.
+
+  function syncScrollToPreview() {
+    if (!settings.syncScroll || !markdownMode || !textAreaRef || !previewRef || isSyncingScroll)
+      return
+
+    isSyncingScroll = true
+    
+    // LINE-BASED SYNC (Editor -> Preview)
+    // 1. Calculate the ratio of lines scrolled in the editor.
+    // 2. Apply this ratio to the total scrollable height of the preview pane.
+    const totalLines = textLines.length || 1
+    const currentLineIndex = Math.floor((textAreaRef.scrollTop / (textAreaRef.scrollHeight - textAreaRef.clientHeight)) * totalLines)
+    
+    // Preview scroll calculation:
+    // (Current Line / Total Lines) * (Preview Total Scroll Height)
+    const previewScrollTop = (currentLineIndex / totalLines) * (previewRef.scrollHeight - previewRef.clientHeight)
+    
+    previewRef.scrollTop = previewScrollTop
+
+    setTimeout(() => (isSyncingScroll = false), 10)
+  }
+
+  function handlePreviewScroll() {
+    if (!settings.syncScroll || !markdownMode || !textAreaRef || !previewRef || isSyncingScroll)
+      return
+
+    isSyncingScroll = true
+
+    // LINE-BASED SYNC (Preview -> Editor)
+    // 1. Calculate the scroll percentage of the preview pane.
+    // 2. Map this percentage back to the editor's scroll height.
+    const previewPercent = previewRef.scrollTop / (previewRef.scrollHeight - previewRef.clientHeight || 1)
+    textAreaRef.scrollTop = previewPercent * (textAreaRef.scrollHeight - textAreaRef.clientHeight)
+
+    setTimeout(() => (isSyncingScroll = false), 10)
+  }
+
   async function applyFormat(type: 'bold' | 'italic' | 'heading') {
     if (!textAreaRef || isFormatting) return
     isFormatting = true
 
     try {
+      textAreaRef.focus() // Ensure focus for execCommand
       const start = textAreaRef.selectionStart
       const end = textAreaRef.selectionEnd
 
@@ -121,18 +165,25 @@
         newText = marker + selectedText + marker
       }
 
-      // Apply change to content state
-      content = content.substring(0, start) + newText + content.substring(end)
+      // UNDO HISTORY FIX:
+      // Instead of directly mutating `content`, use execCommand.
+      // This preserves the browser's built-in undo/redo stack.
+      // It also triggers the `input` event, which will naturally update `content`.
+      const success = document.execCommand('insertText', false, newText)
 
-      // Wait for Svelte to update the DOM (textarea value)
-      await tick()
+      // Fallback for environments where execCommand might fail (rare for simple textareas)
+      if (!success) {
+        content = content.substring(0, start) + newText + content.substring(end)
+        await tick()
+        handleInput({ target: textAreaRef } as unknown as Event)
+      }
 
-      // Trigger parent updates (line heights, unsaved status)
-      handleInput({ target: textAreaRef } as unknown as Event)
-
-      // Select the newly formatted text (including markers)
-      textAreaRef.setSelectionRange(start, start + newText.length)
-      textAreaRef.focus()
+      // If success (or fallback), we need to adjust selection
+      // We want to select the newly inserted text (including markers)
+      await tick() // wait for input event to process state
+      if (textAreaRef) {
+        textAreaRef.setSelectionRange(start, start + newText.length)
+      }
     } finally {
       isFormatting = false
       showToolbar = false
@@ -182,6 +233,11 @@
     if (start === end) {
       showToolbar = false
     }
+  }
+
+  function handleEditorScrollWrapper() {
+    handleScroll()
+    syncScrollToPreview()
   }
 
   function handleTextAreaClick() {
@@ -250,7 +306,7 @@
            preventing layout shifts that would misalign the highlight layer. -->
       <textarea
         bind:this={textAreaRef}
-        onscroll={handleScroll}
+        onscroll={handleEditorScrollWrapper}
         onclick={handleTextAreaClick}
         onkeydown={handleTextareaKeydown}
         onkeyup={handleKeyUp}
@@ -298,6 +354,8 @@
 
     <!-- Markdown Preview Pane -->
     <div
+      bind:this={previewRef}
+      onscroll={handlePreviewScroll}
       class="flex-1 h-full min-w-0 overflow-y-auto p-8 prose {notepadMode
         ? 'prose-slate'
         : 'prose-invert'} max-w-none break-words font-mono"

@@ -8,4 +8,5 @@ export interface AppSettings {
   theme: 'dark' | 'light' | 'midnight' | 'forest'
   notepadMode: boolean
   markdownMode: boolean
+  syncScroll: boolean
 }

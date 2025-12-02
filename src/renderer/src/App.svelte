@@ -61,7 +61,8 @@
     showLineNumbers: true,
     theme: 'dark',
     notepadMode: false,
-    markdownMode: false
+    markdownMode: false,
+    syncScroll: true
   })
 
   // --- DERIVED CALCULATIONS ---
@@ -71,10 +72,13 @@
 
   let markdownTimeout: ReturnType<typeof setTimeout>
   $effect(() => {
+    // READ DEPENDENCY: Access content synchronously so the effect subscribes to changes.
+    // If accessed only inside setTimeout, Svelte 5 won't track it as a dependency.
+    const currentContent = content
     if (markdownMode) {
       clearTimeout(markdownTimeout)
       markdownTimeout = setTimeout(() => {
-        const res = marked.parse(content)
+        const res = marked.parse(currentContent)
         if (res instanceof Promise) {
           res.then((r) => (markdownHTML = r))
         } else {

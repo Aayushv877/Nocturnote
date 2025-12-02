@@ -98,6 +98,7 @@
         <div class="pt-6 border-t border-[#2e3245] space-y-3">
           <Toggle label="Word Wrap" bind:checked={settings.wordWrap} />
           <Toggle label="Line Numbers" bind:checked={settings.showLineNumbers} />
+          <Toggle label="Sync Scroll" bind:checked={settings.syncScroll} />
         </div>
       </div>
     </div>
