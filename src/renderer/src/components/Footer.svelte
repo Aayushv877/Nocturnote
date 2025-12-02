@@ -10,7 +10,8 @@
     textAreaRef,
     currentLine,
     currentCol,
-    lineEnding
+    lineEnding,
+    toggleLineEnding
   } = $props<{
     content: string
     notepadMode: boolean
@@ -21,6 +22,7 @@
     currentLine: number
     currentCol: number
     lineEnding: string
+    toggleLineEnding: () => void
   }>()
 </script>
 
@@ -47,6 +49,13 @@
     {/if}
   </div>
   <div class="flex gap-4 font-mono w-1/3 justify-end">
-    <span>{lineEnding}</span><span>UTF-8</span><span>{content.length} chars</span>
+    <button
+      onclick={toggleLineEnding}
+      class="hover:text-[#f4f4f5] transition-colors cursor-pointer"
+      title="Click to convert line endings"
+    >
+      {lineEnding}
+    </button>
+    <span>UTF-8</span><span>{content.length} chars</span>
   </div>
 </footer>

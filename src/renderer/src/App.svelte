@@ -144,6 +144,21 @@
   let lineNumWidth = $derived(Math.max(50, maxDigits * (settings.fontSize * 0.7) + 20))
   let lineEnding = $derived(content.includes('\r\n') ? 'CRLF' : 'LF')
 
+  function toggleLineEnding() {
+    if (lineEnding === 'CRLF') {
+      // Convert to LF
+      content = content.replace(/\r\n/g, '\n')
+      flashStatus('Converted to LF')
+    } else {
+      // Convert to CRLF
+      // First normalize to LF to avoid double conversion, then to CRLF
+      content = content.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n')
+      flashStatus('Converted to CRLF')
+    }
+    isSaved = false
+    updateCursorPos()
+  }
+
   // --- HIGHLIGHTER ---
   let highlightedHTML = $derived.by(() => {
     if (!showSearch || !searchQuery) return ''
@@ -598,6 +613,7 @@
     {currentLine}
     {currentCol}
     {lineEnding}
+    {toggleLineEnding}
   />
 
   <SettingsModal bind:showSettings bind:settings />
