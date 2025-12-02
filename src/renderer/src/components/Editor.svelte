@@ -53,6 +53,10 @@
   let splitRatio = $state(50)
   let editorWidth = $state(0)
 
+  // REACTIVE WIDTH TRACKING:
+  // Uses ResizeObserver to track the exact width of the textarea.
+  // This width is passed to the hidden measurement div (measureRef) to ensure
+  // line wrapping matches exactly, preventing alignment issues.
   $effect(() => {
     if (!textAreaRef) return
     editorWidth = textAreaRef.clientWidth
@@ -186,6 +190,9 @@
 </script>
 
 <main bind:this={containerRef} class="relative flex-1 z-10 flex overflow-hidden">
+  <!-- MEASUREMENT DIV:
+       1. Position fixed & pointer-events none: Removes it from flow to prevent extending scroll height.
+       2. Uses `editorWidth`: Ensures wrapped lines match the visible textarea exactly. -->
   <div
     bind:this={measureRef}
     aria-hidden="true"
@@ -226,6 +233,9 @@
     {/if}
 
     <div class="flex-1 relative h-full min-w-0">
+      <!-- HIGHLIGHT LAYER:
+           Padding right includes `2rem` (standard padding) + `10px` (scrollbar width)
+           to ensure highlights align perfectly with the text in the scrollable textarea below. -->
       <div
         bind:this={highlightRef}
         class="absolute inset-0 z-0 pointer-events-none overflow-hidden pt-2 pb-8 pl-4 antialiased"
@@ -235,6 +245,9 @@
       >
         {@html highlightedHTML}
       </div>
+      <!-- EDITOR TEXTAREA:
+           overflow-y: scroll ensures vertical scrollbar is always visible (if needed),
+           preventing layout shifts that would misalign the highlight layer. -->
       <textarea
         bind:this={textAreaRef}
         onscroll={handleScroll}
@@ -471,6 +484,7 @@
     font-weight: 500;
     border-bottom: 1px solid transparent;
     transition: border-color 0.2s;
+    /* Prevent links from being clickable in preview to avoid unloading the app */
     pointer-events: none;
   }
   :global(.prose a:hover) {
