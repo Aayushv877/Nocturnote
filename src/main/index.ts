@@ -4,8 +4,9 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import fs from 'fs/promises'
 import icon from '../../resources/icon.png?asset'
 
-let mainWindow: BrowserWindow | null = null
-let pendingFile: { content: string; filePath: string } | null = null
+// State Management
+const windowFiles = new Map<number, string>() // windowId -> filePath
+const pendingFiles = new Map<number, { content: string; filePath: string }>() // windowId -> fileData
 
 async function loadFileFromArgv(
   argv: string[]
@@ -27,8 +28,8 @@ async function loadFileFromArgv(
   return null
 }
 
-function createWindow(): void {
-  mainWindow = new BrowserWindow({
+function createWindow(fileData: { content: string; filePath: string } | null = null): void {
+  const newWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -42,32 +43,33 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow!.show()
+  // Track the file associated with this window
+  if (fileData) {
+    windowFiles.set(newWindow.id, fileData.filePath)
+    pendingFiles.set(newWindow.id, fileData)
+  }
+
+  newWindow.on('ready-to-show', () => {
+    newWindow.show()
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  newWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
   // HMR for dev or load file for prod
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    newWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    newWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  // --- Window Control Handlers ---
-  ipcMain.on('window-minimize', () => mainWindow?.minimize())
-  ipcMain.on('window-maximize', () => {
-    if (mainWindow?.isMaximized()) {
-      mainWindow.unmaximize()
-    } else {
-      mainWindow?.maximize()
-    }
+  // Cleanup
+  newWindow.on('closed', () => {
+    windowFiles.delete(newWindow.id)
+    pendingFiles.delete(newWindow.id)
   })
-  ipcMain.on('window-close', () => mainWindow?.close())
 }
 
 // Single Instance Lock
@@ -77,15 +79,34 @@ if (!gotTheLock) {
   app.quit()
 } else {
   app.on('second-instance', async (_, argv) => {
-    // Someone tried to run a second instance, we should focus our window.
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
+    // Check for file in the new arguments
+    const fileData = await loadFileFromArgv(argv)
 
-      // Check for file in the new arguments
-      const fileData = await loadFileFromArgv(argv)
-      if (fileData) {
-        mainWindow.webContents.send('open-file-content', fileData)
+    if (fileData) {
+      // Check if this file is already open in a window
+      const existingEntry = [...windowFiles.entries()].find(([_, path]) => path === fileData.filePath)
+
+      if (existingEntry) {
+        const [windowId] = existingEntry
+        const win = BrowserWindow.fromId(windowId)
+        if (win) {
+          if (win.isMinimized()) win.restore()
+          win.focus()
+          return // Found and focused, done.
+        }
+      }
+
+      // If not found, open a new window for this file
+      createWindow(fileData)
+    } else {
+      // No file provided, just focus the most recently active window or create one
+      const allWindows = BrowserWindow.getAllWindows()
+      if (allWindows.length > 0) {
+        const win = allWindows[0]
+        if (win.isMinimized()) win.restore()
+        win.focus()
+      } else {
+        createWindow()
       }
     }
   })
@@ -93,22 +114,43 @@ if (!gotTheLock) {
   app.whenReady().then(async () => {
     electronApp.setAppUserModelId('com.fezcode.nocturnote')
 
-    // Check initial file on startup
-    pendingFile = await loadFileFromArgv(process.argv)
-
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)
+    })
+
+    // --- Window Control Handlers (Context Aware) ---
+    ipcMain.on('window-minimize', (event) => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      win?.minimize()
+    })
+    ipcMain.on('window-maximize', (event) => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      if (win) {
+        if (win.isMaximized()) {
+          win.unmaximize()
+        } else {
+          win.maximize()
+        }
+      }
+    })
+    ipcMain.on('window-close', (event) => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      win?.close()
     })
 
     // --- File I/O Handlers ---
 
     // Handle Save
-    ipcMain.handle('save-file', async (_, { content, filePath }) => {
+    ipcMain.handle('save-file', async (event, { content, filePath }) => {
       try {
         let targetPath = filePath
         // If no path provided, show Save Dialog
+        const win = BrowserWindow.fromWebContents(event.sender)
+
         if (!targetPath) {
-          const { canceled, filePath: savePath } = await dialog.showSaveDialog({
+          if (!win) return { success: false, error: 'No window found' }
+
+          const { canceled, filePath: savePath } = await dialog.showSaveDialog(win, {
             title: 'Save Note',
             defaultPath: 'Untitled.txt',
             filters: [
@@ -121,6 +163,12 @@ if (!gotTheLock) {
         }
 
         await fs.writeFile(targetPath, content, 'utf-8')
+
+        // Update window file association
+        if (win) {
+          windowFiles.set(win.id, targetPath)
+        }
+
         return { success: true, filePath: targetPath }
       } catch (error) {
         console.error(error)
@@ -129,9 +177,12 @@ if (!gotTheLock) {
     })
 
     // Handle Open
-    ipcMain.handle('open-file', async () => {
+    ipcMain.handle('open-file', async (event) => {
       try {
-        const { canceled, filePaths } = await dialog.showOpenDialog({
+        const win = BrowserWindow.fromWebContents(event.sender)
+        if (!win) return { canceled: true }
+
+        const { canceled, filePaths } = await dialog.showOpenDialog(win, {
           properties: ['openFile'],
           filters: [{ name: 'Text Files', extensions: ['txt', 'md'] }]
         })
@@ -139,6 +190,10 @@ if (!gotTheLock) {
         if (canceled || filePaths.length === 0) return { canceled: true }
 
         const content = await fs.readFile(filePaths[0], 'utf-8')
+
+        // Update window file association
+        windowFiles.set(win.id, filePaths[0])
+
         return { canceled: false, filePath: filePaths[0], content }
       } catch (error) {
         console.error(error)
@@ -147,15 +202,20 @@ if (!gotTheLock) {
     })
 
     // Handle Initial File Check from Renderer
-    ipcMain.handle('get-initial-file', () => {
-      const file = pendingFile
-      pendingFile = null // Clear it
-      return file
+    ipcMain.handle('get-initial-file', (event) => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      if (!win) return null
+
+      const file = pendingFiles.get(win.id)
+      pendingFiles.delete(win.id) // Clear it once retrieved
+      return file || null
     })
 
     ipcMain.handle('get-app-version', () => app.getVersion())
 
-    createWindow()
+    // Check initial file on startup
+    const initialFile = await loadFileFromArgv(process.argv)
+    createWindow(initialFile)
 
     app.on('activate', function () {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
