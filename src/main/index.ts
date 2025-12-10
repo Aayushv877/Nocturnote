@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import fs from 'fs/promises'
 import icon from '../../resources/icon.png?asset'
@@ -11,17 +11,22 @@ const pendingFiles = new Map<number, { content: string; filePath: string }>() //
 async function loadFileFromArgv(
   argv: string[]
 ): Promise<{ content: string; filePath: string } | null> {
-  // In production on Windows, the first argument is the executable, the second is often the file path.
-  // We skip this in dev to avoid picking up dev server args.
-  if (!is.dev && process.platform === 'win32' && argv.length >= 2) {
-    const filePath = argv[1]
-    // Basic validation to ensure it's likely a file path and not a flag
-    if (filePath && !filePath.startsWith('-')) {
+  // Iterate through arguments to find a valid file path.
+  // We skip the first argument (executable path).
+  for (let i = 1; i < argv.length; i++) {
+    const arg = argv[i]
+    // Skip flags (arguments starting with -) and the '.' argument often present in dev
+    if (!arg.startsWith('-') && arg !== '.') {
       try {
-        const content = await fs.readFile(filePath, 'utf-8')
-        return { content, filePath }
+        // Verify it's a file before reading
+        const stat = await fs.stat(arg)
+        if (stat.isFile()) {
+          const content = await fs.readFile(arg, 'utf-8')
+          return { content, filePath: resolve(arg) }
+        }
       } catch (error) {
-        console.error('Failed to read initial file:', error)
+        // Ignore errors (not a file, doesn't exist, etc.) and continue searching
+        console.log(`Arg '${arg}' is not a loadable file:`, error)
       }
     }
   }
@@ -84,7 +89,13 @@ if (!gotTheLock) {
 
     if (fileData) {
       // Check if this file is already open in a window
-      const existingEntry = [...windowFiles.entries()].find(([_, path]) => path === fileData.filePath)
+      const targetPath = fileData.filePath
+      const existingEntry = [...windowFiles.entries()].find(([_, path]) => {
+        if (process.platform === 'win32') {
+          return path.toLowerCase() === targetPath.toLowerCase()
+        }
+        return path === targetPath
+      })
 
       if (existingEntry) {
         const [windowId] = existingEntry
