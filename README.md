@@ -2,6 +2,8 @@
 
 Nocturnote is a sleek, modern, and highly customizable note-taking application built with Electron, Svelte, TypeScript, and Tailwind CSS. It offers a distraction-free writing environment with powerful features like search and replace, file management, and appearance customization.
 
+![Preview](preview.png)
+
 ## Features
 
 - **Customizable Interface:** Choose your preferred font family, font size, font weight, and line height. Toggle word wrap and line numbers to suit your writing style.
