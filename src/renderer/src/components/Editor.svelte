@@ -222,6 +222,21 @@
     }
   }
 
+  function handleDoubleClick(e: MouseEvent) {
+    if (!textAreaRef) return
+    const start = textAreaRef.selectionStart
+    const end = textAreaRef.selectionEnd
+
+    if (start === end) return
+
+    const selectedText = content.substring(start, end)
+    if (/\s$/.test(selectedText)) {
+      textAreaRef.setSelectionRange(start, end - 1)
+      // Update toolbar position for the corrected selection
+      handleMouseUp(e)
+    }
+  }
+
   function handleMouseUp(e: MouseEvent) {
     // Capture coordinates immediately to avoid event staleness issues
     const { clientX, clientY } = e
@@ -325,6 +340,7 @@
         bind:this={textAreaRef}
         onscroll={handleEditorScrollWrapper}
         onclick={handleTextAreaClick}
+        ondblclick={handleDoubleClick}
         onkeydown={handleTextareaKeydown}
         onkeyup={handleKeyUp}
         onmouseup={handleMouseUp}

@@ -17,6 +17,8 @@ declare global {
       minimize: () => void
       maximize: () => void
       close: () => void
+      forceClose: () => void
+      onTryClose: (callback: () => void) => void
       platform: NodeJS.Platform
       getInitialFile: () => Promise<{ content: string; filePath: string } | null>
       getAppVersion: () => Promise<string>

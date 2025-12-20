@@ -19,6 +19,8 @@ const api = {
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),
+  forceClose: () => ipcRenderer.send('window-force-close'),
+  onTryClose: (callback: () => void) => ipcRenderer.on('try-close', () => callback()),
 
   // System Info
   platform: process.platform

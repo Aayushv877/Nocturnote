@@ -7,6 +7,7 @@ import icon from '../../resources/icon.png?asset'
 // State Management
 const windowFiles = new Map<number, string>() // windowId -> filePath
 const pendingFiles = new Map<number, { content: string; filePath: string }>() // windowId -> fileData
+const forceCloseWindows = new Set<number>()
 
 async function loadFileFromArgv(
   argv: string[]
@@ -70,10 +71,20 @@ function createWindow(fileData: { content: string; filePath: string } | null = n
     newWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  // Intercept Close
+  newWindow.on('close', (e) => {
+    if (forceCloseWindows.has(newWindow.id)) {
+      return
+    }
+    e.preventDefault()
+    newWindow.webContents.send('try-close')
+  })
+
   // Cleanup
   newWindow.on('closed', () => {
     windowFiles.delete(newWindow.id)
     pendingFiles.delete(newWindow.id)
+    forceCloseWindows.delete(newWindow.id)
   })
 }
 
@@ -147,6 +158,13 @@ if (!gotTheLock) {
     ipcMain.on('window-close', (event) => {
       const win = BrowserWindow.fromWebContents(event.sender)
       win?.close()
+    })
+    ipcMain.on('window-force-close', (event) => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      if (win) {
+        forceCloseWindows.add(win.id)
+        win.close()
+      }
     })
 
     // --- File I/O Handlers ---

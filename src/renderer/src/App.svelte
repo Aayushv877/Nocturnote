@@ -260,6 +260,11 @@
       updateCursorPos()
     })
 
+    // Handle system close requests (Alt+F4, Taskbar Close)
+    window.api.onTryClose(() => {
+      confirmAction(() => window.api.forceClose())
+    })
+
     return () => {
       window.removeEventListener('resize', calculateLineHeights)
       window.removeEventListener('keydown', preventRefresh)
@@ -514,7 +519,7 @@
   // 2. WINDOW CONTROLS
   const winMin = () => window.api.minimize()
   const winMax = () => window.api.maximize()
-  const winClose = () => confirmAction(() => window.api.close())
+  const winClose = () => window.api.close()
 
   // 3. FILE OPERATIONS
   async function handleSave() {
