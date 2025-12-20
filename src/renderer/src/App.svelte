@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte'
-  import { marked } from 'marked'
+  import { Marked } from 'marked'
   import type { AppSettings } from './types'
   import { Bold, Italic } from 'lucide-svelte'
   import { scale } from 'svelte/transition'
@@ -69,6 +69,43 @@
   let notepadMode = $derived(settings.notepadMode)
   let markdownMode = $derived(settings.markdownMode)
   let markdownHTML = $state('')
+
+  const marked = new Marked()
+  marked.use({
+    renderer: {
+      image({ href, title, text }) {
+        const cleanHref = href || ''
+        if (/^(https?:|file:|data:)/.test(cleanHref)) {
+          const titleAttr = title ? ` title="${title}"` : ''
+          return `<img src="${cleanHref}" alt="${text}"${titleAttr} />`
+        }
+
+        if (filePath) {
+          try {
+            const isWin = window.api.platform === 'win32'
+            const sep = isWin ? '\\' : '/'
+            const lastSepIndex = filePath.lastIndexOf(sep)
+
+            if (lastSepIndex !== -1) {
+              const baseDir = filePath.substring(0, lastSepIndex + 1)
+              let baseUrlStr = baseDir.replace(/\\/g, '/')
+              if (!baseUrlStr.startsWith('/')) baseUrlStr = '/' + baseUrlStr
+              const baseUrl = new URL('file://' + baseUrlStr)
+              const resolved = new URL(cleanHref, baseUrl).href
+
+              const titleAttr = title ? ` title="${title}"` : ''
+              return `<img src="${resolved}" alt="${text}"${titleAttr} />`
+            }
+          } catch (e) {
+            console.error('Image path resolution error:', e)
+          }
+        }
+
+        const titleAttr = title ? ` title="${title}"` : ''
+        return `<img src="${cleanHref}" alt="${text}"${titleAttr} />`
+      }
+    }
+  })
 
   let markdownTimeout: ReturnType<typeof setTimeout>
   $effect(() => {
